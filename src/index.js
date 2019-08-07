@@ -1,4 +1,4 @@
-const {one} = require('./top-down');
+const {one} = require('./parser');
 
 const DQuote = one(`"`);
 const Quote = one(`'`);
