@@ -1,5 +1,5 @@
 const {expect} = require('chai');
-const {one} = require('./parser');
+const {one, oneOf} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -39,6 +39,17 @@ describe(`top-down parser atoms`, () => {
       const multilineAdvancedStringMatcher = one(/(["'])([\s\S]*[^\\])\1/, (all, [,string]) => string, 'string');
       expect(multilineAdvancedStringMatcher(`' my \"st\nring ' d `)).to.be.deep.equal([` my \"st\nring `, ` d `]);
       expect(() => multilineAdvancedStringMatcher(`' my \"st\nring  d `)).to.throw(`Expected string`);
+
+      const booleanMatcher = one(/[0-1]/, (all) => {
+        if (all === '1') {
+          return true;
+        } else if (all === '0') {
+          return false;
+        }
+      }, 'boolean');
+
+      expect(booleanMatcher(`1 asdf`)).to.be.deep.equal([true, ` asdf`]);
+      expect(booleanMatcher(`0 asdf`)).to.be.deep.equal([false, ` asdf`]);
     });
 
     it(`should use another matcher`, () => {
@@ -51,6 +62,27 @@ describe(`top-down parser atoms`, () => {
       expect(() => wrappedMatcher2(` my comment */ d `)).to.throw(`Expected deepComment`);
     });
 
+  });
+
+  describe(`oneOf()`, () => {
+    it(`should use two basic matchers`, () => {
+      const aMatcher = one('a');
+      const bMatcher = one('b');
+
+      const abMatcher = oneOf([aMatcher, bMatcher]);
+
+      expect(abMatcher(`a123`)).to.be.deep.equal(['a', '123']);
+      expect(abMatcher(`b123`)).to.be.deep.equal(['b', '123']);
+      expect(() => abMatcher(`c123`)).to.throw(`Expected a`);
+    });
+
+    it(`should transform errors`, () => {
+      const aMatcher = one('a', undefined, 'A');
+      const bMatcher = one('b', undefined, 'B');
+
+      const abMatcher = oneOf([aMatcher, bMatcher], undefined, errorResults => new Error(errorResults.map(({message}) => message).join(' or ')));
+      expect(() => abMatcher(`c123`)).to.throw(`Expected A or Expected B`);
+    });
   });
 
 });
