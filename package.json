@@ -20,6 +20,7 @@
     "url": "https://github.com/ralekna/td-parser/issues"
   },
   "homepage": "https://github.com/ralekna/td-parser#readme",
+  "engines" : { "node" : ">6.0" }
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^6.2.0"
