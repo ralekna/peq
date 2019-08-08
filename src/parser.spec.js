@@ -11,6 +11,11 @@ describe(`top-down parser atoms`, () => {
       expect(underscoreMatcher(`_asd_asd`)).to.be.deep.equal([`_`, `asd_asd`]);
     });
 
+    it(`should not be converted to regexp when string is used`, () => {
+      const stringMatcher = one(`ad*`);
+      expect(() => stringMatcher(`addd`)).to.throw(`Expected ad*`);
+    });
+
     it(`should throw an error on non matching String`, () => {
       const underscoreMatcher = one(`_`);
       expect(() => underscoreMatcher(`asd_asd`)).to.throw(`Expected _`);
