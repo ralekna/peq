@@ -1,5 +1,5 @@
 const {expect} = require('chai');
-const {one, oneOf} = require('./parser');
+const {one, oneOf, all} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -81,13 +81,55 @@ describe(`top-down parser atoms`, () => {
       expect(() => abMatcher(`c123`)).to.throw(`Expected a`);
     });
 
+    it(`should use transformer`, () => {
+      const aMatcher = one('a');
+      const bMatcher = one('b');
+
+      const abMatcher = oneOf([aMatcher, bMatcher], value => value.toUpperCase());
+
+      expect(abMatcher(`a123`)).to.be.deep.equal(['A', '123']);
+      expect(abMatcher(`b123`)).to.be.deep.equal(['B', '123']);
+      expect(() => abMatcher(`c123`)).to.throw(`Expected a`);
+    });
+
     it(`should transform errors`, () => {
       const aMatcher = one('a', undefined, 'A');
       const bMatcher = one('b', undefined, 'B');
 
       const abMatcher = oneOf([aMatcher, bMatcher], undefined, errorResults => new Error(errorResults.map(({message}) => message).join(' or ')));
       expect(() => abMatcher(`c123`)).to.throw(`Expected A or Expected B`);
+
+      const abMatcher2 = oneOf([aMatcher, bMatcher]);
+      expect(() => abMatcher2(`c123`)).to.throw(`Expected A or Expected B`);
     });
   });
 
+  describe(`all()`, () => {
+    it(`should use two basic matchers`, () => {
+      const aMatcher = one('a');
+      const bMatcher = one('b');
+
+      const abMatcher = all([aMatcher, bMatcher]);
+
+      expect(abMatcher(`ab123`)).to.be.deep.equal([['a', 'b'], '123']);
+      expect(() => abMatcher(`c123`)).to.throw(`Expected a`);
+    });
+
+    it(`should use named two basic matchers`, () => {
+      const quoteMatcher = one(`"`);
+      const textMatcher = one(/^[a-z0-9]*/);
+
+      const stringMatcher = all([quoteMatcher, {name: 'text', matcher: textMatcher}, quoteMatcher], (all, {text}) => text);
+
+      expect(stringMatcher(`"asdf132456" asdf`)).to.be.deep.equal(['asdf132456', ` asdf`]);
+      expect(() => stringMatcher(`c123`)).to.throw(`Expected "`);
+    });
+
+    it(`should construct from primitive matchers`, () => {
+      const stringMatcher = all([{matcher: `"`}, {name: 'text', matcher: /^[a-z0-9]*/}, {matcher: `"`}], (all, {text}) => text);
+
+      expect(stringMatcher(`"asdf132456" asdf`)).to.be.deep.equal(['asdf132456', ` asdf`]);
+      expect(() => stringMatcher(`c123`)).to.throw(`Expected "`);
+    });
+  });
 });

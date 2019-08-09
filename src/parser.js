@@ -49,6 +49,8 @@ const one = (matcher, transformer = identity, error = (typeof matcher === 'funct
 
 const isNonEmptyArray = value => Array.isArray(value) && value.length;
 
+const isPrimitiveMatcher = matcher => (typeof matcher === 'string' || matcher instanceof RegExp);
+
 const oneOf = (matchers, transformer = identity, error = undefined) => {
 	assert(isNonEmptyArray(matchers), `At least one matcher must be provided`);
 	assert(Array.isArray(matchers), `Matchers must be array`);
@@ -67,16 +69,17 @@ const oneOf = (matchers, transformer = identity, error = undefined) => {
 				return childError;
 			}
 		});
-		const nonErrorResults = matchResults.filter(result => !(result instanceof Error));
-		if (nonErrorResults.length) {
-			return transformer(nonErrorResults[0]);
+		const nonErrorResult = matchResults.find(result => !(result instanceof Error));
+		if (nonErrorResult) {
+			const [result, restInput] = nonErrorResult;
+			return [transformer(result), restInput];
 		} else {
 			if (typeof error === 'function') {
 				throw error(matchResults);
 			} else if (typeof error === 'string') {
 				throw new Error(`Expected ${error}`);
 			} else {
-				throw new Error(matchResults[0]);
+				throw new Error(matchResults.map(error => error.message).join(' or '));
 			}
 		}
 	};
@@ -87,37 +90,44 @@ const all = (matchers, transformer = identity, error = undefined) => {
 	assert(Array.isArray(matchers), `Matchers must be array`);
 
 	const wrappedMatchers = matchers.map((matcher, index) => {
-		if (typeof matcher === 'object') {
-			assert(matcher.name && matcher.matcher, `Invalid matcher provided ${matcher}`);
-			if (['function', 'string'].includes(typeof matcher.matcher)) {
-				return {...matcher, matcher: one(matcher.matcher)};
+		if (typeof matcher === 'function') {
+			return  {matcher: matcher, name: index};
+		} else if (isPrimitiveMatcher(matcher)) {
+			return {name: index, ...matcher, matcher: one(matcher)};
+		} else if (typeof matcher === 'object' && matcher.matcher) {
+			assert(!!matcher.matcher, `Invalid matcher provided ${matcher}`);
+			if (isPrimitiveMatcher(matcher.matcher)) {
+				return {name: index, ...matcher, matcher: one(matcher.matcher)};
 			}
 			return matcher;
-		} else if (typeof matcher === 'function') {
-			return  {matcher: matcher, name: index};
 		}
 
 	});
+
 	return input => {
-		let all = [], named = {};
 		try {
-			wrappedMatchers.forEach(matcher => {
-				const result = matcher.matcher(input);
+			const {all, named, restInput} = wrappedMatchers.reduce(({all, named, restInput: input}, {matcher, name}) => {
+				const [result, restInput] = matcher(input);
 				all.push(result);
-				named[matcher.name] = result;
-			});
-			return transformer(all, named);
+				named[name] = result;
+				return {all, named, restInput};
+			}, {all: [], named: {}, restInput: input});
+			return [transformer(all, named), restInput];
+
 		} catch (childError) {
-			if (error) {
+			if (typeof error === 'function') {
+				throw error(childError);
+			} else if (typeof error === 'string') {
 				throw new Error(`Expected ${error}`);
-				// TODO: use error transformer too
+			} else {
+				throw childError;
 			}
 		}
-
 	}
 };
 
 module.exports = {
 	one,
-	oneOf
+	oneOf,
+	all
 };
