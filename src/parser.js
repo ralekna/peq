@@ -31,7 +31,6 @@ const one = (matcher, transformer = identity, error = (typeof matcher === 'funct
 			throw new Error(`Expected ${error}`);
 		} else if (matchRegStr) {
 			if (input.startsWith(matchRegStr)) {
-				let result = input.match(matchRegExp);
 				const all = input.slice(0, matchRegStr.length);
 				const rest = input.slice(matchRegStr.length);
 				return [transformer(all, rest), input.slice(all.length)];
