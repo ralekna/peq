@@ -1,8 +1,30 @@
 const {expect} = require('chai');
-const {one, oneOf, all} = require('./parser');
+const {one, oneOf, all, any, fromString, fromObject, fromPrimitive} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
+
+  describe(`utilities withString(), withRegExp()`, () => {
+    it (`should create a matcher from string`, () => {
+      let matcher = fromString('a');
+      expect(matcher(`ab`)).to.be.deep.equal(['a', 'b']);
+    });
+
+    it (`should create a matcher from object`, () => {
+      let objectMatcher = fromObject({name: 'my', matcher: 'a'}, (all, {my}) => my);
+      expect(objectMatcher(`ab`)).to.be.deep.equal(['a', 'b']);
+
+      let objectMatcher2 = fromObject({name: 'my', matcher: 'a'});
+      expect(objectMatcher2(`ab`)).to.be.deep.equal(['a', 'b']);
+    });
+
+    it (`should create a matcher from any primitive`, () => {
+      let stringMatcher = fromPrimitive('a');
+      expect(stringMatcher(`ab`)).to.be.deep.equal(['a', 'b']);
+      let regExpMatcher = fromPrimitive(/a/);
+      expect(regExpMatcher(`ab`)).to.be.deep.equal(['a', 'b']);
+    });
+  });
 
   describe(`one()`, () => {
 
@@ -130,6 +152,25 @@ describe(`top-down parser atoms`, () => {
 
       expect(stringMatcher(`"asdf132456" asdf`)).to.be.deep.equal(['asdf132456', ` asdf`]);
       expect(() => stringMatcher(`c123`)).to.throw(`Expected "`);
+      expect(() => stringMatcher(`"c123`)).to.throw(`Expected "`);
+    });
+  });
+
+  describe(`any()`, () => {
+    it(`should use one basic matcher`, () => {
+      const aMatcher = one('a');
+      const multipleAMatcher = any(aMatcher);
+      expect(multipleAMatcher(`aaab123`)).to.be.deep.equal([['a', 'a', 'a'], 'b123']);
+      expect(multipleAMatcher(`b123`)).to.be.deep.equal([[], 'b123']);
+      expect(() => multipleAMatcher(`c123`)).not.to.throw(`Expected a`);
+    });
+    it(`should use all() matcher`, () => {
+      const aMatcher = one('a');
+      const bMatcher = one('b');
+      const multipleABMatcher = any(all([aMatcher, bMatcher]));
+      expect(multipleABMatcher(`abab123`)).to.be.deep.equal([[['a', 'b'], ['a', 'b']], '123']);
+      expect(multipleABMatcher(`b123`)).to.be.deep.equal([[], 'b123']);
+      expect(() => multipleABMatcher(`c123`)).not.to.throw(`Expected a`);
     });
   });
 });
