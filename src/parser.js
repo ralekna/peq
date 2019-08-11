@@ -1,8 +1,4 @@
-const assert = require('assert');
-
 const identity = (value, named = {}) => value;
-
-const withMatcherTransform = matcherTransformer => matcherFnBody => (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => matcherFnBody(matcherTransformer(matcher, transformer, error));
 
 const last = (array) => array[array.length -1];
 const init = (array) => array.slice(0, -1);
@@ -67,6 +63,9 @@ const fromPrimitive = (matcher, transformer = identity, name = matcher) =>
 			(matcher, fromFn) => fromFn(matcher, transformer, name),
 		matcher);
 
+const wrapMatcher = matcherFn => (matcher, transformer = identity, name = matcher) =>
+  matcherFn(Array.isArray(matcher) ? all(matcher) : fromPrimitive(matcher, transformer, name), transformer, name);
+
 const handleChildError = (childError, error, matchResults) => {
 	if (typeof error === 'function') {
 		throw error(matchResults || childError);
@@ -83,32 +82,36 @@ const handleChildError = (childError, error, matchResults) => {
 
 const isNonEmptyArray = value => Array.isArray(value) && value.length;
 
-const isPrimitiveMatcher = matcher => (typeof matcher === 'string' || matcher instanceof RegExp);
-
-const one = (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
-	const wrappedMatcher = fromPrimitive(matcher, transformer, error);
+const one = wrapMatcher((matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
 	return input => {
 		try {
-			return wrappedMatcher(input);
+			return matcher(input);
 		} catch (childError) {
 			handleChildError(childError, error);
 		}
 	};
-};
+});
 
-const not =  (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
+const not = wrapMatcher((matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
 	return input => {
-
+	  let result;
+    try {
+      result = matcher(input);
+    } catch (error) {
+      return [undefined, input];
+    }
+    if (result) {
+      throw new Error(`Unexpected ${error}`);
+    }
 	};
-};
-
+});
 
 const oneOf = (matchers, transformer = identity, error = undefined) => {
 	if (!isNonEmptyArray(matchers)) {
 		throw new Error(`At least one matcher must be provided in array`);
 	}
 
-	const wrappedMatchers = matchers.map(fromPrimitive);
+	const wrappedMatchers = matchers.map(matcher => fromPrimitive(matcher));
 	return input => {
 		const matchResults = wrappedMatchers.map(matcher => {
 			try {
@@ -126,6 +129,28 @@ const oneOf = (matchers, transformer = identity, error = undefined) => {
 		}
 	};
 };
+
+const optional = wrapMatcher((matcher, transformer = identity) => {
+	return input => {
+		try {
+      return matcher(input);
+		} catch (error) {
+			return [undefined, input];
+		}
+	}
+});
+
+const oneOrMore = (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
+	const wrappedMatcher = any(matcher, transformer);
+	return input => {
+		let [result, rest] = wrappedMatcher(input);
+		if (!result.length) {
+			throw new Error(`Expected at least one ${error}`);
+		}
+		return [result, rest];
+	}
+};
+
 
 const all = (matchers, transformer = identity, error = undefined) => {
 
@@ -153,13 +178,10 @@ const all = (matchers, transformer = identity, error = undefined) => {
 	}
 };
 
-const any = (matcher, transformer = identity) => {
-
-	const wrappedMatcher = Array.isArray(matcher) ? all(matcher) : fromPrimitive(matcher);
-
+const any = wrapMatcher((matcher, transformer = identity) => {
 	const greedyMatchInput = input => {
 		try {
-			let [result, rest] = wrappedMatcher(input);
+			let [result, rest] = matcher(input);
 			return [result].concat(greedyMatchInput(rest));
 		} catch (error) {
 			return [input];
@@ -170,13 +192,16 @@ const any = (matcher, transformer = identity) => {
 		const result = greedyMatchInput(input);
 		return [transformer(init(result)), last(result)];
 	}
-};
+});
 
 module.exports = {
 	one,
 	oneOf,
 	all,
 	any,
+  not,
+	optional,
+	oneOrMore,
 	fromRegExp,
 	fromString,
 	fromObject,

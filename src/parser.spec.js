@@ -1,5 +1,5 @@
 const {expect} = require('chai');
-const {one, oneOf, all, any, fromString, fromObject, fromRegExp, fromPrimitive} = require('./parser');
+const {one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -183,6 +183,38 @@ describe(`top-down parser atoms`, () => {
       expect(multipleABMatcher(`abab123`)).to.be.deep.equal([[['a', 'b'], ['a', 'b']], '123']);
       expect(multipleABMatcher(`b123`)).to.be.deep.equal([[], 'b123']);
       expect(() => multipleABMatcher(`c123`)).not.to.throw(`Expected a`);
+    });
+  });
+
+  describe(`optional()`, () => {
+    it(`should match a char if given`, () => {
+      const matcher = optional('a');
+      expect(matcher('ab')).to.be.deep.equal(['a', 'b']);
+
+      const matcher2 = optional('a', all => all.toUpperCase());
+      expect(matcher2('ab')).to.be.deep.equal(['A', 'b']);
+    });
+
+    it(`should not match a char and not throw error`, () => {
+      const matcher = optional('a');
+      expect(matcher('bb')).to.be.deep.equal([undefined, 'bb']);
+    });
+  });
+
+  describe(`oneOrMore()`, () => {
+    it(`should match a char or more`, () => {
+      const matcher = oneOrMore('a');
+      expect(matcher('ab')).to.be.deep.equal([['a'], 'b']);
+      expect(matcher('aaab')).to.be.deep.equal([['a', 'a', 'a'], 'b']);
+      expect(() => matcher('bbb')).to.throw(`Expected at least one a`);
+    });
+  });
+
+  describe(`not()`, () => {
+    it(`should match if char is not present`, () => {
+      const matcher = not('a');
+      expect(matcher('bb')).to.be.deep.equal([undefined, 'bb']);
+      expect(() => matcher('ab')).to.throw(`Unexpected a`);
     });
   });
 });
