@@ -1,5 +1,5 @@
 const {expect} = require('chai');
-const {one, oneOf, all, any, fromString, fromObject, fromPrimitive} = require('./parser');
+const {one, oneOf, all, any, fromString, fromObject, fromRegExp, fromPrimitive} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -8,6 +8,14 @@ describe(`top-down parser atoms`, () => {
     it (`should create a matcher from string`, () => {
       let matcher = fromString('a');
       expect(matcher(`ab`)).to.be.deep.equal(['a', 'b']);
+      const stringMatcher = fromString(`ad*`);
+      expect(() => stringMatcher(`addd`)).to.throw(`Expected ad*`);
+    });
+
+    it (`should create a matcher from regExp`, () => {
+      const commentMatcher = fromRegExp(/\/\*(.*)\*\//, (all, [comment]) => comment, 'comment');
+      expect(commentMatcher(`/* my comment */ d `)).to.be.deep.equal([` my comment `, ` d `]);
+      expect(() => commentMatcher(` my comment */ d `)).to.throw(`Expected comment`);
     });
 
     it (`should create a matcher from object`, () => {

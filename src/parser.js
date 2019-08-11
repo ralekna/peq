@@ -4,6 +4,9 @@ const identity = (value, named = {}) => value;
 
 const withMatcherTransform = matcherTransformer => matcherFnBody => (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => matcherFnBody(matcherTransformer(matcher, transformer, error));
 
+const last = (array) => array[array.length -1];
+const init = (array) => array.slice(0, -1);
+
 const fromRegExp = (matcher, transformer = identity, name = matcher) => {
 	if (matcher instanceof RegExp) {
 		let regExp = matcher;
@@ -36,9 +39,9 @@ const fromString = (matcher, transformer = identity, name = matcher) => {
 	return matcher;
 };
 
-const fromObject = (matcher, transformer = identity, name = matcher) => {
+const fromObject = (matcher, transformer = identity, name = matcher.name) => {
 	if (typeof matcher === 'object' && matcher.matcher) {
-		const matcherFn = fromPrimitive(matcher.matcher, identity, name);
+		const matcherFn = fromPrimitive(matcher.matcher, identity, (typeof name === 'string') ? name : matcher.name);
 		if (typeof matcherFn !== 'function') {
 			throw new Error(`Invalid matcher object ${matcher}`);
 		}
@@ -61,51 +64,36 @@ const fromArray = (matcher, transformer = identity, name = matcher) => {
 
 const fromPrimitive = (matcher, transformer = identity, name = matcher) =>
 	[fromString, fromRegExp, fromObject, fromArray].reduce(
-			(matcher, fromFn) => fromFn(matcher, transformer, identity, name),
+			(matcher, fromFn) => fromFn(matcher, transformer, name),
 		matcher);
 
-const one = (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
-	const matcherType = typeof matcher;
-	let matchRegExp, matchRegStr, matchFn;
-	
-	if (matcherType === 'string') {
-		matchRegStr = matcher;
-	} else if (matcherType === 'object' && matcher instanceof RegExp) {
-		if (matcher.source.startsWith('^')) {
-			matchRegExp = matcher;
-		} else {
-			matchRegExp = new RegExp(`^${matcher.source}`);
-		}
-		
-	} else if (matcherType === 'function') {
-		matchFn = matcher;
+const handleChildError = (childError, error, matchResults) => {
+	if (typeof error === 'function') {
+		throw error(matchResults || childError);
+	} else if (typeof error === 'string') {
+		throw new Error(`Expected ${error}`);
+	} else if (Array.isArray(matchResults) && matchResults.every(item => (item instanceof Error))) {
+		throw new Error(matchResults.map(error => error.message).join(' or '));
+	} else if (Array.isArray(error) && error.every(item => (item instanceof Error))) {
+		throw new Error(error.map(error => error.message).join(' or '));
 	} else {
-		throw new assert.AssertionError({message: `Unsupported matcher ${matcher}`});
+		throw childError;
 	}
-	
+};
+
+const isNonEmptyArray = value => Array.isArray(value) && value.length;
+
+const isPrimitiveMatcher = matcher => (typeof matcher === 'string' || matcher instanceof RegExp);
+
+const one = (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
+	const wrappedMatcher = fromPrimitive(matcher, transformer, error);
 	return input => {
-		if (matchRegExp) {
-			let result = input.match(matchRegExp);
-			if (result) {
-				const [all, ...rest] = result;
-				return [transformer(all, rest), input.slice(all.length)];
-			}
-			throw new Error(`Expected ${error}`);
-		} else if (matchRegStr) {
-			if (input.startsWith(matchRegStr)) {
-				const all = input.slice(0, matchRegStr.length);
-				const rest = input.slice(matchRegStr.length);
-				return [transformer(all, rest), input.slice(all.length)];
-			}
-			throw new Error(`Expected ${error}`);
-		} else {
-			try {
-				return matchFn(input);
-			} catch (childError) {
-				throw new Error(`Expected ${error ? (typeof error === 'function' ? error(childError) : error) : childError}`);
-			}
+		try {
+			return wrappedMatcher(input);
+		} catch (childError) {
+			handleChildError(childError, error);
 		}
-	}
+	};
 };
 
 const not =  (matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
@@ -114,20 +102,13 @@ const not =  (matcher, transformer = identity, error = (typeof matcher === 'func
 	};
 };
 
-const isNonEmptyArray = value => Array.isArray(value) && value.length;
-
-const isPrimitiveMatcher = matcher => (typeof matcher === 'string' || matcher instanceof RegExp);
 
 const oneOf = (matchers, transformer = identity, error = undefined) => {
-	assert(isNonEmptyArray(matchers), `At least one matcher must be provided`);
-	assert(Array.isArray(matchers), `Matchers must be array`);
+	if (!isNonEmptyArray(matchers)) {
+		throw new Error(`At least one matcher must be provided in array`);
+	}
 
-	const wrappedMatchers = matchers.map(matcher => {
-		if (typeof matcher === 'string' || matcher instanceof RegExp) {
-			return one(matcher);
-		}
-		return  matcher;
-	});
+	const wrappedMatchers = matchers.map(fromPrimitive);
 	return input => {
 		const matchResults = wrappedMatchers.map(matcher => {
 			try {
@@ -141,80 +122,53 @@ const oneOf = (matchers, transformer = identity, error = undefined) => {
 			const [result, restInput] = nonErrorResult;
 			return [transformer(result), restInput];
 		} else {
-			if (typeof error === 'function') {
-				throw error(matchResults);
-			} else if (typeof error === 'string') {
-				throw new Error(`Expected ${error}`);
-			} else {
-				throw new Error(matchResults.map(error => error.message).join(' or '));
-			}
+			handleChildError(undefined, matchResults, matchResults);
 		}
 	};
 };
 
 const all = (matchers, transformer = identity, error = undefined) => {
-	assert(isNonEmptyArray(matchers), `At least one matcher must be provided`);
-	assert(Array.isArray(matchers), `Matchers must be array`);
 
-	const wrappedMatchers = matchers.map((matcher, index) => {
-		if (typeof matcher === 'function') {
-			return  {matcher: matcher, name: index};
-		} else if (isPrimitiveMatcher(matcher)) {
-			return {name: index, ...matcher, matcher: one(matcher)};
-		} else if (typeof matcher === 'object' && matcher.matcher) {
-			assert(!!matcher.matcher, `Invalid matcher provided ${matcher}`);
-			if (isPrimitiveMatcher(matcher.matcher)) {
-				return {name: index, ...matcher, matcher: one(matcher.matcher)};
-			}
-			return matcher;
-		}
+	if (!isNonEmptyArray(matchers)) {
+		throw new Error(`At least one matcher must be provided in array`);
+	}
 
-	});
+	const wrappedMatchers = matchers.map(matcher => fromPrimitive(matcher));
 
 	return input => {
 		try {
-			const {all, named, restInput} = wrappedMatchers.reduce(({all, named, restInput: input}, {matcher, name}) => {
+			const {all, named, restInput} = wrappedMatchers.reduce(({all, named, restInput: input}, matcher) => {
 				const [result, restInput] = matcher(input);
 				all.push(result);
-				named[name] = result;
+				if (matcher._name) {
+					named[matcher._name] = result;
+				}
 				return {all, named, restInput};
 			}, {all: [], named: {}, restInput: input});
 			return [transformer(all, named), restInput];
 
 		} catch (childError) {
-			if (typeof error === 'function') {
-				throw error(childError);
-			} else if (typeof error === 'string') {
-				throw new Error(`Expected ${error}`);
-			} else {
-				throw childError;
-			}
+			handleChildError(childError, error);
 		}
 	}
 };
 
 const any = (matcher, transformer = identity) => {
-	let wrappedMatcher;
-	if (isPrimitiveMatcher(matcher)) {
-		wrappedMatcher = one(matcher);
-	} else {
-		wrappedMatcher = matcher;
-	}
+
+	const wrappedMatcher = Array.isArray(matcher) ? all(matcher) : fromPrimitive(matcher);
+
+	const greedyMatchInput = input => {
+		try {
+			let [result, rest] = wrappedMatcher(input);
+			return [result].concat(greedyMatchInput(rest));
+		} catch (error) {
+			return [input];
+		}
+	};
 
 	return input => {
-
-		let all = [];
-		let restInput = input;
-		while (restInput.length > 0) {
-			try {
-				let [result, input] = wrappedMatcher(restInput);
-				all.push(result);
-				restInput = input;
-			} catch (error) {
-				break;
-			}
-		}
-		return [transformer(all), restInput];
+		const result = greedyMatchInput(input);
+		return [transformer(init(result)), last(result)];
 	}
 };
 
