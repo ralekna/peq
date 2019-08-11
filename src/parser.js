@@ -42,14 +42,12 @@ const fromObject = (matcher, transformer = identity, name = matcher) => {
 		if (typeof matcherFn !== 'function') {
 			throw new Error(`Invalid matcher object ${matcher}`);
 		}
-		return input => {
-				let result = matcherFn(input);
-				if (matcher.name) {
-					let [all, restInput] = result;
-					return [transformer(all, {[matcher.name]: all}), restInput];
-				}
-				return result;
+		const wrappedMatcher = input => {
+			let result = matcherFn(input);
+			let [all, restInput] = result;
+			return [transformer(all, matcher.name), restInput];
 		};
+		return Object.assign(wrappedMatcher, {_name: matcher.name});
 	}
 	return matcher;
 };

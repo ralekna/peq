@@ -11,10 +11,14 @@ describe(`top-down parser atoms`, () => {
     });
 
     it (`should create a matcher from object`, () => {
-      let objectMatcher = fromObject({name: 'my', matcher: 'a'}, (all, {my}) => my);
+      let objectMatcher = fromObject({name: 'my', matcher: 'a'}, (all, name) =>  {
+        expect(name).to.be.equal('my');
+        return all;
+      });
       expect(objectMatcher(`ab`)).to.be.deep.equal(['a', 'b']);
 
       let objectMatcher2 = fromObject({name: 'my', matcher: 'a'});
+      expect(objectMatcher2._name).to.be.equal('my');
       expect(objectMatcher2(`ab`)).to.be.deep.equal(['a', 'b']);
     });
 
