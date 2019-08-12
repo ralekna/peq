@@ -1,5 +1,5 @@
 const {expect} = require('chai');
-const {one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive} = require('./parser');
+const {grammar, one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -215,6 +215,17 @@ describe(`top-down parser atoms`, () => {
       const matcher = not('a');
       expect(matcher('bb')).to.be.deep.equal([undefined, 'bb']);
       expect(() => matcher('ab')).to.throw(`Unexpected a`);
+    });
+  });
+
+  describe(`grammar()`, () => {
+    it (`should find dynamic references`, () => {
+      let parser = grammar(_ => [{
+        number: any(_('digit'), digits => parseInt(digits.join(''), 10)),
+        digit: one(/^[0-9]/)
+      }, 'number']);
+      let result = parser(`123`);
+      expect(result).to.be.deep.equal(123);
     });
   });
 });

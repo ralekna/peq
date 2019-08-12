@@ -194,7 +194,27 @@ const any = wrapMatcher((matcher, transformer = identity) => {
 	}
 });
 
+const grammar = initializer => {
+  let definitionTable = {}, start = undefined;
+  const getDefinition = name => input => {
+    if (!definitionTable[name]) {
+      throw new Error(`Unknown grammar definition ${name}`);
+    }
+    return definitionTable[name](input);
+  };
+  ([definitionTable, start] = initializer(getDefinition));
+  if (start === 'undefined' || !definitionTable[start]) {
+    throw new Error('Unspecified or invalid entry point');
+  }
+  let entry = getDefinition(start);
+  return input => {
+    let [result, rest] = entry(input);
+    return result;
+  }
+};
+
 module.exports = {
+  grammar,
 	one,
 	oneOf,
 	all,
