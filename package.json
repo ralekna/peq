@@ -1,7 +1,7 @@
 {
   "name": "td-parser",
   "version": "1.0.0",
-  "description": "Top down JavaScript parser",
+  "description": "JavaScript top-down parser generator API",
   "main": "src/index.js",
   "scripts": {
     "test": "mocha ./src"
@@ -12,9 +12,15 @@
   },
   "keywords": [
     "topdown",
-    "parser"
+    "top-down",
+    "Recursive descent parser",
+    "parser",
+    "PEG",
+    "parsing expression grammar",
+    "generator",
+    "compiler"
   ],
-  "author": "Rytis Alekna",
+  "author": "Rytis Alekna <r.alekna@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/ralekna/td-parser/issues"
