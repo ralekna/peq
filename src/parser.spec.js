@@ -218,6 +218,28 @@ describe(`top-down parser atoms`, () => {
     });
   });
 
+  describe(`named error handling`, () => {
+    it(`should throw a named error instead of primitive matcher`,() => {
+
+      let matcher = all(['(', one(/^[a-z]+[a-z0-9]*/, undefined, 'Identifier'), ')']);
+      expect(() => matcher(`0stuff)`)).to.throw(`Expected (`);
+      expect(() => matcher(`(0stuff)`)).to.throw(`Expected Identifier`);
+
+      let matcher2 = all(['(', one(/^[a-z]+[a-z0-9]*/, undefined, 'Identifier'), ')'], undefined, 'Sentence');
+
+      // yes, it's an intended behavior - higher level named quantifiers eats named errors of child matchers,
+      // so if you don't want to it to be swallowed - either don't name too abstract structures or add custom error
+      // handling function to `error` param.
+      expect(() => matcher2(`0stuff)`)).to.throw(`Expected Sentence`);
+    });
+
+    it(`should throw an error with primitive matcher`, () => {
+
+      let matcher = all(['(', one(/^[a-z]+[a-z0-9]*/), ')']);
+      expect(() => matcher(`(0stuff)`)).to.throw(`Expected /^[a-z]+[a-z0-9]*/`);
+    });
+  });
+
   describe(`grammar()`, () => {
     it (`should find dynamic references`, () => {
       let parser = grammar(_ => [{
