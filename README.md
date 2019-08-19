@@ -22,3 +22,7 @@ As there's no documentation yet, please check [examples folder](https://github.c
 ## Contribution and issues
 
 Just open a ticket in Github
+
+## Licence
+
+This work is licensed under [Apache 2.0](https://opensource.org/licenses/Apache-2.0) open source license.

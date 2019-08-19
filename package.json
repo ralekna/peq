@@ -21,7 +21,7 @@
     "compiler"
   ],
   "author": "Rytis Alekna <r.alekna@gmail.com>",
-  "license": "MIT",
+  "license": "Apache 2.0",
   "bugs": {
     "url": "https://github.com/ralekna/td-parser/issues"
   },
