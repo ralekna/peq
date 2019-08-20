@@ -35,6 +35,10 @@ describe('CSV grammar', () => {
     expect(parser(`"aaa","bbb","ccc"`)).to.be.deep.equal([['aaa', 'bbb', 'ccc']]);
   });
 
+  it('should parse single comma separated line with empty fields', () => {
+    expect(parser(`"aaa",,"","ccc"`)).to.be.deep.equal([['aaa', '', '','ccc']]);
+  });
+
   it('should parse multiple comma separated line', () => {
     expect(parser(`aaa,bbb,ccc \r\nddd,eee,fff`)).to.be.deep.equal([['aaa', 'bbb', 'ccc '], ['ddd', 'eee', 'fff']]);
   });
@@ -45,5 +49,16 @@ describe('CSV grammar', () => {
 
   it('should parse mixed line with quotes and linebreaks inside', () => {
     expect(parser(`aaa,"b \r\nbb","ccc"\r\nddd,"e"",ee",fff`)).to.be.deep.equal([['aaa', 'b \r\nbb', 'ccc'], ['ddd', 'e",ee', 'fff']]);
+  });
+
+  it('should allow optional linebreak at the end of document', () => {
+    expect(parser(`"aaa","bbb","ccc"\r\n"aaa","bbb","ccc"`)).to.be.deep.equal([['aaa', 'bbb', 'ccc'], ['aaa', 'bbb', 'ccc']]);
+    expect(parser(`"aaa","bbb","ccc"\r\n"aaa","bbb","ccc"\r\n`)).to.be.deep.equal([['aaa', 'bbb', 'ccc'], ['aaa', 'bbb', 'ccc']]);
+  });
+
+  it('should parse empty document', () => {
+    expect(parser(``)).to.be.deep.equal([['']]); // yes, no record is also one record :)
+    expect(parser(`,`)).to.be.deep.equal([['','']]);
+    expect(parser(`\r\n\r\n`)).to.be.deep.equal([[''],['']]); // well this pass but I don't know if it should.
   });
 });

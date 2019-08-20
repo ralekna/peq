@@ -17,26 +17,33 @@
 /*
  * CSV grammar example based on https://tools.ietf.org/html/rfc4180 specification
  */
-const {grammar, one, oneOf, all, any, optional} = require('./../parser');
+const {grammar, one, oneOf, all, any, optional, not} = require('./../parser');
 
 const CRLF = one(`\r\n`, undefined, 'linebreak');
 const TextData = one(/^[^",\n\r]+/);
 const Quote = one(`"`);
 const DQuote = one(`""`, () => `"`);
 const Comma = one(`,`);
+const EOF = input => {
+  if (!input.length) {
+    return [undefined, ''];
+  } else {
+    throw new Error(`Expected EOF`);
+  }
+};
 const Escaped = all([
   Quote,
   {name: 'text', matcher: any(oneOf([TextData, CRLF, DQuote, Comma]), all => all.join(''))},
   Quote
 ], (all, {text}) => text);
-const Field = oneOf([TextData, Escaped]);
+const Field = optional(oneOf([TextData, Escaped]), value => value || "");
 const Record = all([
   {name: 'head', matcher: Field},
   {name: 'tail', matcher: any(all([Comma, Field], ([, field]) => field))}
-  ], (all, {head, tail}) => [head, ...tail]);
+  ], (all, {head, tail}) => [head, ...tail], 'Record');
 const CsvDocument = all([
   {name: 'head', matcher: Record},
-  {name: 'tail', matcher: any(all([CRLF, Record], ([, record]) => record))},
+  {name: 'tail', matcher: any(all([CRLF, not(EOF), Record], ([,, record]) => record))},
   optional(CRLF)
 ], (all, {head, tail}) => [head, ...tail]);
 

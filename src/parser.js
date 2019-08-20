@@ -149,9 +149,9 @@ const oneOf = (matchers, transformer = identity, error = undefined) => {
 const optional = wrapMatcher((matcher, transformer = identity) => {
 	return input => {
 		try {
-      return matcher(input);
+      		return matcher(input);
 		} catch (error) {
-			return [undefined, input];
+			return [transformer(undefined), input];
 		}
 	}
 });
@@ -235,7 +235,7 @@ module.exports = {
 	oneOf,
 	all,
 	any,
-  not,
+  	not,
 	optional,
 	oneOrMore,
 	fromRegExp,
