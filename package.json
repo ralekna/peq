@@ -1,16 +1,18 @@
 {
-  "name": "td-parser",
+  "name": "peq",
   "version": "0.1.0",
-  "description": "JavaScript top-down parser generator API",
+  "description": "JavaScript parsing expressions query library",
   "main": "src/parser.js",
   "scripts": {
     "test": "mocha ./src/**"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/ralekna/td-parser.git"
+    "url": "git+ssh://git@github.com/ralekna/peq.git"
   },
   "keywords": [
+    "peq",
+    "parsing expressions query",
     "topdown",
     "top-down",
     "Recursive descent parser",
@@ -23,9 +25,9 @@
   "author": "Rytis Alekna <r.alekna@gmail.com>",
   "license": "Apache 2.0",
   "bugs": {
-    "url": "https://github.com/ralekna/td-parser/issues"
+    "url": "https://github.com/ralekna/peq/issues"
   },
-  "homepage": "https://github.com/ralekna/td-parser#readme",
+  "homepage": "https://github.com/ralekna/peq#readme",
   "engines": {
     "node": ">8.0"
   },
