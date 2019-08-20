@@ -7,7 +7,19 @@ but in a way where your constructed grammar is a parser itself instead of genera
 
 ## Usage
 
-As there's no documentation yet, please check [examples folder](https://travis-ci.com/ralekna/peq/tree/master/src/examples) 
+### Installation
+`npm i peq`
+
+### Usage in Node.js
+
+```javascript
+const {grammar, one, oneOf, all, any, not, optional, oneOrMore} = require("peq");
+
+console.log(all([`"`, {name: 'text', matcher: any(/[a-z]/) }, `"`], (all, {text}) => text.join(''))(`"asd"`));
+// ^ this will output ['asd', '']
+```
+
+As there's still no more documentation yet, please check [examples folder](https://github.com/ralekna/peq/tree/master/src/examples) 
 
 ## ToDo
 
