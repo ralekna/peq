@@ -1,13 +1,13 @@
 # PEQ - JavaScript *P*arsing *E*xpressions *Q*uery library
 
-[![alt Build status](https://api.travis-ci.com/ralekna/td-parser.svg?branch=master "Build status")](https://travis-ci.com/ralekna/td-parser)
+[![alt Build status](https://api.travis-ci.com/ralekna/peq.svg?branch=master "Build status")](https://travis-ci.com/ralekna/peq)
 
 This library aims to provide a parser generator functionality of [PEG.js](https://github.com/pegjs/pegjs) 
 but in a way where your constructed grammar is a parser itself instead of generating some human unreadable code. Like with jQuery you can query HTML DOM elements, with PEQ provided _matchers_ you can query a string and transform it to any other data structure.
 
 ## Usage
 
-As there's no documentation yet, please check [examples folder](https://github.com/ralekna/td-parser/tree/master/src/examples) 
+As there's no documentation yet, please check [examples folder](https://travis-ci.com/ralekna/peq/tree/master/src/examples) 
 
 ## ToDo
 
