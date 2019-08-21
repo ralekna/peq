@@ -15,7 +15,7 @@
 */
 
 const {expect} = require('chai');
-const {grammar, one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive, c} = require('./parser');
+const {grammar, one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive, c, p} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -285,6 +285,13 @@ describe(`top-down parser atoms`, () => {
       expect(Expression(`(1)`)).to.be.deep.equal(['1', '']);
       expect(Expression(`((1))`)).to.be.deep.equal(['1', '']);
       expect(() => Expression(`(1`)).to.throw(`Expected RBrace`);
+    });
+  });
+
+  describe(`p() matcher wrapper for converting matcher to final parser`, () => {
+    it(`wrapped matcher should return only parsed value instead of tuple with parsed value and rest of the input`, () => {
+      const matcher = one(`a`);
+      expect(p(matcher)(`aabc`)).to.be.equal('a');
     });
   });
 });
