@@ -82,6 +82,59 @@ const fromPrimitive = (matcher, transformer = identity, name = matcher) =>
 const wrapMatcher = matcherFn => (matcher, transformer = identity, name = matcher) =>
   matcherFn(Array.isArray(matcher) ? all(matcher) : fromPrimitive(matcher, transformer, name), transformer, name);
 
+class ParseError extends Error {
+  constructor(expected, unexpected, source = '', index = 0, lineNumber = 0, columnNumber = 0) {
+    super(`${expected}\nUnexpected ${unexpected} \non line: ${lineNumber}, at column: ${columnNumber},\nat source:\n${source.slice(10)} ...\n^${("").padEnd(9, '-')}`);
+    this.name = `ParseError`;
+    this._expected = expected;
+    this._unexpected = unexpected;
+    this._columnNumber = columnNumber;
+    this._lineNumber = lineNumber;
+    this._index = index;
+    this._source = source;
+  }
+
+  get lineNumber() {
+    return this._lineNumber;
+  }
+
+  get columnNumber() {
+    return this._columnNumber;
+  }
+
+  get index() {
+    return this._index;
+  }
+
+  get expected() {
+    return this._expected;
+  }
+
+  get unexpected() {
+    return this._unexpected;
+  }
+
+  get source() {
+    return this._source;
+  }
+
+  clone(parentSource, parentError = undefined) {
+    const newIndex = parentSource.length - this.source.length;
+    return new ParseError(parentError || this.expected, this.unexpected, this.source, newIndex)
+  }
+}
+
+const withError = matcherFn => (...args) => {
+  const initializedMatcher = matcherFn(...args);
+  return input => {
+    try {
+      return initializedMatcher(input);
+    } catch (error) {
+
+    }
+  }
+};
+
 const handleChildError = (childError, error, matchResults) => {
 	if (typeof error === 'function') {
 		throw error(matchResults || childError);
@@ -141,7 +194,7 @@ const oneOf = (matchers, transformer = identity, error = undefined) => {
 			const [result, restInput] = nonErrorResult;
 			return [transformer(result), restInput];
 		} else {
-			handleChildError(undefined, matchResults, matchResults);
+			handleChildError(undefined, error || matchResults, matchResults);
 		}
 	};
 };
@@ -149,7 +202,7 @@ const oneOf = (matchers, transformer = identity, error = undefined) => {
 const optional = wrapMatcher((matcher, transformer = identity) => {
 	return input => {
 		try {
-      		return matcher(input);
+      return matcher(input);
 		} catch (error) {
 			return [transformer(undefined), input];
 		}
