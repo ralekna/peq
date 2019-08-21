@@ -229,6 +229,16 @@ const grammar = initializer => {
   }
 };
 
+const c = matcherProducer => {
+	let cachedMatcher;
+	return input => {
+		if (!cachedMatcher) {
+			cachedMatcher = matcherProducer();
+		}
+		return cachedMatcher(input);
+	}
+};
+
 module.exports = {
   grammar,
 	one,
@@ -241,5 +251,6 @@ module.exports = {
 	fromRegExp,
 	fromString,
 	fromObject,
-	fromPrimitive
+	fromPrimitive,
+	c
 };

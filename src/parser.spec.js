@@ -15,7 +15,7 @@
 */
 
 const {expect} = require('chai');
-const {grammar, one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive} = require('./parser');
+const {grammar, one, oneOf, all, any, not, optional, oneOrMore, fromString, fromObject, fromRegExp, fromPrimitive, c} = require('./parser');
 const {describe, it} = require('mocha');
 
 describe(`top-down parser atoms`, () => {
@@ -264,6 +264,27 @@ describe(`top-down parser atoms`, () => {
       }, 'number']);
       let result = parser(`123`);
       expect(result).to.be.deep.equal(123);
+    });
+  });
+
+  describe(`c() recursive structures handling`, () => {
+    it(`should handle recursive structure`, () => {
+      const Num = one(/\d+/, undefined, 'Number');
+      const LBrace = one(/\(/, undefined, 'LBrace');
+      const RBrace = one(/\)/, undefined, 'RBrace');
+      const Expression = c(() => oneOf([
+          Num,
+          all([
+              LBrace,
+              {name: 'expr', matcher: Expression },
+              RBrace
+          ], (all, {expr}) => expr)
+      ]));
+
+      expect(Expression(`1`)).to.be.deep.equal(['1', '']);
+      expect(Expression(`(1)`)).to.be.deep.equal(['1', '']);
+      expect(Expression(`((1))`)).to.be.deep.equal(['1', '']);
+      expect(() => Expression(`(1`)).to.throw(`Expected RBrace`);
     });
   });
 });
