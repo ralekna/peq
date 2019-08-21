@@ -229,17 +229,20 @@ const grammar = initializer => {
   }
 };
 
+const p = matcher => input => matcher(input)[0];
+
 module.exports = {
-  grammar,
+	grammar,
 	one,
 	oneOf,
 	all,
 	any,
-  	not,
+	not,
 	optional,
 	oneOrMore,
 	fromRegExp,
 	fromString,
 	fromObject,
-	fromPrimitive
+	fromPrimitive,
+	p
 };
