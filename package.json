@@ -1,6 +1,6 @@
 {
   "name": "peq",
-  "version": "0.1.1",
+  "version": "0.2.0-0",
   "description": "JavaScript parsing expressions query library",
   "main": "src/parser.js",
   "scripts": {
