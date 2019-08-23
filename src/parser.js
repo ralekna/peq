@@ -124,15 +124,16 @@ class ParseError extends Error {
   }
 }
 
-const withError = matcherFn => (...args) => {
-  const initializedMatcher = matcherFn(...args);
-  return input => {
-    try {
-      return initializedMatcher(input);
-    } catch (error) {
-
-    }
-  }
+const withError = matcherFn => input => {
+	try {
+		return matcherFn(input);
+	} catch (error) {
+		if (error instanceof ParseError) {
+			throw error.clone(input);
+		} else {
+			throw new ParseError(error, input.slice(0,1), input);
+		}
+	}
 };
 
 const handleChildError = (childError, error, matchResults) => {
@@ -151,7 +152,7 @@ const handleChildError = (childError, error, matchResults) => {
 
 const isNonEmptyArray = value => Array.isArray(value) && value.length;
 
-const one = wrapMatcher((matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
+const one = withError(wrapMatcher((matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
 	return input => {
 		try {
 			return matcher(input);
@@ -159,7 +160,7 @@ const one = wrapMatcher((matcher, transformer = identity, error = (typeof matche
 			handleChildError(childError, error);
 		}
 	};
-});
+}));
 
 const not = wrapMatcher((matcher, transformer = identity, error = (typeof matcher === 'function' ? undefined : matcher)) => {
 	return input => {
