@@ -84,7 +84,7 @@ const wrapMatcher = matcherFn => (matcher, transformer = identity, name = matche
 
 class ParseError extends Error {
   constructor(expected, unexpected, source = '', index = 0, lineNumber = 0, columnNumber = 0) {
-    super(`${expected}\nUnexpected ${unexpected} \non line: ${lineNumber}, at column: ${columnNumber},\nat source:\n${source.slice(10)} ...\n^${("").padEnd(9, '-')}`);
+    super(`${expected}\nUnexpected ${unexpected} \non line: ${lineNumber}, at column: ${columnNumber},\nat source:\n${source.slice(0, Math.min(10, source.length))}${source.length > 10 ? '...' : ''}\n^${("").padEnd(Math.min(9, source.length - 1), '-')}`);
     this.name = `ParseError`;
     this._expected = expected;
     this._unexpected = unexpected;
@@ -120,18 +120,21 @@ class ParseError extends Error {
 
   clone(parentSource, parentError = undefined) {
     const newIndex = parentSource.length - this.source.length;
-    return new ParseError(parentError || this.expected, this.unexpected, this.source, newIndex)
+    return new ParseError((parentError && parentError.message) || this.expected, this.unexpected, this.source, newIndex)
   }
 }
 
-const withError = matcherFn => input => {
-	try {
-		return matcherFn(input);
-	} catch (error) {
-		if (error instanceof ParseError) {
-			throw error.clone(input);
-		} else {
-			throw new ParseError(error, input.slice(0,1), input);
+const withError = matcherFn => (matcher, transformer = identity, error = undefined) => {
+	const wrappedMatcher = matcherFn(matcher, transformer = identity, error);
+	return input => {
+		try {
+			return wrappedMatcher(input);
+		} catch (error) {
+			if (error instanceof ParseError) {
+				throw error.clone(input);
+			} else {
+				throw new ParseError(error, input.slice(0, 1), input);
+			}
 		}
 	}
 };

@@ -294,4 +294,11 @@ describe(`top-down parser atoms`, () => {
       expect(p(matcher)(`aabc`)).to.be.equal('a');
     });
   });
+
+  describe(`advanced error handling`, () => {
+    it(`should show exact error and it's location`, () => {
+      let matcher = one('a');
+      expect(() => matcher(`bb`)).to.throw(`Expected a\nUnexpected b \non line: 0, at column: 0,\nat source:\nbb\n^-`);
+    });
+  });
 });
