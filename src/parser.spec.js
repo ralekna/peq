@@ -296,9 +296,29 @@ describe(`top-down parser atoms`, () => {
   });
 
   describe(`advanced error handling`, () => {
-    it(`should show exact error and it's location`, () => {
+    it(`should show exact error and it's location by using one() matcher`, () => {
       let matcher = one('a');
       expect(() => matcher(`bb`)).to.throw(`Expected a\nUnexpected b \non line: 0, at column: 0,\nat source:\nbb\n^-`);
     });
+
+    it(`should show exact error and it's location by using all() matcher`, () => {
+      let matcher = all(['a', 'b', 'c']);
+      expect(() => matcher(`acb`)).to.throw(`Expected b\nUnexpected c \non line: 0, at column: 1,\nat source:\nacb\n^--`);
+    });
+
+    it(`should analyze thrown object`, () => {
+      const fn = () => {
+        throw {
+          a: 1,
+          b:2,
+          c: 3
+        };
+      };
+      expect(fn).to.throw().with.include({
+        a: 1,
+        b:2
+      });
+    });
+
   });
 });

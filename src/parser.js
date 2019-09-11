@@ -225,7 +225,7 @@ const oneOrMore = (matcher, transformer = identity, error = (typeof matcher === 
 };
 
 
-const all = (matchers, transformer = identity, error = undefined) => {
+const all = withError((matchers, transformer = identity, error = undefined) => {
 
 	if (!isNonEmptyArray(matchers)) {
 		throw new Error(`At least one matcher must be provided in array`);
@@ -249,7 +249,7 @@ const all = (matchers, transformer = identity, error = undefined) => {
 			handleChildError(childError, error);
 		}
 	}
-};
+});
 
 const any = wrapMatcher((matcher, transformer = identity) => {
 	const greedyMatchInput = input => {
